@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}TrueShot — Certifier un fichier{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <h1 data-key="submit_title">Certifier un fichier</h1>
+    <p data-key="submit_sub">Importez votre photo ou vidéo pour analyse et certification</p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">
+    {% if error == 'no_file' %}
+      <span data-key="err_no_file">Aucun fichier sélectionné.</span>
+    {% elif error == 'bad_format' %}
+      <span data-key="err_format">Format non supporté. Utilisez JPG, PNG, WebP, MP4, MOV, AVI ou MKV.</span>
+    {% else %}
+      {{ error }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <form action="/analyze" method="POST" enctype="multipart/form-data" id="uploadForm">
+
+    <!-- Compte connecté -->
+    <div class="connected-user-banner">
+      <span class="nav-avatar">{{ current_user.username[0].upper() }}</span>
+      <span data-key="certify_as">Certification au nom de</span>
+      <strong>@{{ current_user.username }}</strong>
+    </div>
+
+    <!-- Zone de dépôt -->
+    <div class="upload-zone" id="dropZone">
+      <input type="file" name="file" id="fileInput" accept="image/*,video/*" required>
+      <div class="upload-content" id="uploadContent">
+        <div class="upload-icon">📁</div>
+        <h3 data-key="drop_title">Glissez votre fichier ici</h3>
+        <p data-key="drop_sub">ou cliquez pour parcourir</p>
+        <div class="format-tags">
+          <span class="tag">JPG</span>
+          <span class="tag">PNG</span>
+          <span class="tag">WebP</span>
+          <span class="tag">MP4</span>
+          <span class="tag">MOV</span>
+          <span class="tag">AVI</span>
+        </div>
+      </div>
+      <div class="upload-content selected-content" id="selectedContent" style="display:none">
+        <div class="file-info" id="fileInfo"></div>
+        <p class="change-file" data-key="change_file">Cliquer pour changer de fichier</p>
+      </div>
+    </div>
+
+    <!-- Infos -->
+    <div class="submit-info-grid">
+      <div class="submit-info-item">
+        <span class="info-icon">⚡</span>
+        <span data-key="info1">Analyse en quelques secondes</span>
+      </div>
+      <div class="submit-info-item">
+        <span class="info-icon">🔒</span>
+        <span data-key="info2">Votre fichier est supprimé après traitement</span>
+      </div>
+      <div class="submit-info-item">
+        <span class="info-icon">📦</span>
+        <span data-key="info3">Taille max : 500 Mo</span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtn" disabled data-key="submit_btn">
+      Analyser et certifier →
+    </button>
+  </form>
+
+</div>
+
+<!-- Overlay de traitement -->
+<div class="processing" id="processingOverlay">
+  <div class="spinner"></div>
+  <p class="processing-title" data-key="processing_title">Analyse en cours…</p>
+  <p class="processing-sub" data-key="processing_sub">Détection IA · Génération du badge · Création du QR code</p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const dropZone       = document.getElementById('dropZone');
+const fileInput      = document.getElementById('fileInput');
+const uploadContent  = document.getElementById('uploadContent');
+const selectedContent = document.getElementById('selectedContent');
+const fileInfo       = document.getElementById('fileInfo');
+const submitBtn      = document.getElementById('submitBtn');
+const form           = document.getElementById('uploadForm');
+const overlay        = document.getElementById('processingOverlay');
+
+let fileReady = false;
+
+function checkReady() {
+  submitBtn.disabled = !fileReady;
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+}
+
+function isVideo(name) {
+  return /\.(mp4|mov|avi|mkv)$/i.test(name);
+}
+
+function showFile(file) {
+  const icon = isVideo(file.name) ? '🎬' : '🖼';
+  fileInfo.innerHTML = `
+    <div class="file-preview-icon">${icon}</div>
+    <div>
+      <div class="file-name">${file.name}</div>
+      <div class="file-size">${formatSize(file.size)}</div>
+    </div>`;
+  uploadContent.style.display = 'none';
+  selectedContent.style.display = 'flex';
+  fileReady = true;
+  checkReady();
+}
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) showFile(fileInput.files[0]);
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    showFile(file);
+  }
+});
+
+form.addEventListener('submit', () => {
+  overlay.classList.add('active');
+});
+</script>
+{% endblock %}

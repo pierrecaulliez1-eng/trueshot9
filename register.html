@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}TrueShot — Créer un compte{% endblock %}
+{% block content %}
+<div class="page-container auth-container">
+
+  <div class="auth-logo">
+    <span class="logo-check">✓</span> TrueShot
+  </div>
+
+  <div class="auth-card">
+    <h1 data-key="reg_title">Créer un compte</h1>
+    <p data-key="reg_sub">Gratuit, sans carte bancaire</p>
+
+    {% if error %}
+    <div class="alert alert-error">
+      {% if error == 'missing_fields' %}<span data-key="err_missing">Tous les champs sont obligatoires.</span>
+      {% elif error == 'password_mismatch' %}<span data-key="err_pw_match">Les mots de passe ne correspondent pas.</span>
+      {% elif error == 'password_short' %}<span data-key="err_pw_short">Le mot de passe doit faire au moins 6 caractères.</span>
+      {% elif error == 'username_taken' %}<span data-key="err_user_taken">Ce nom d'utilisateur est déjà pris.</span>
+      {% elif error == 'email_taken' %}<span data-key="err_email_taken">Cette adresse email est déjà utilisée.</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/register">
+      <div class="auth-field">
+        <label data-key="reg_username">Nom d'utilisateur</label>
+        <div class="creator-input-wrap">
+          <span class="creator-at">@</span>
+          <input type="text" name="username" placeholder="votrepseudo"
+                 maxlength="30" required autocomplete="username">
+        </div>
+        <p class="creator-hint" data-key="reg_username_hint">C'est ce nom qui apparaîtra sur vos certifications.</p>
+      </div>
+
+      <div class="auth-field">
+        <label data-key="reg_email">Adresse email</label>
+        <input class="auth-input" type="email" name="email"
+               placeholder="vous@exemple.com" required autocomplete="email">
+      </div>
+
+      <div class="auth-field">
+        <label data-key="reg_password">Mot de passe</label>
+        <input class="auth-input" type="password" name="password"
+               placeholder="6 caractères minimum" required minlength="6">
+      </div>
+
+      <div class="auth-field">
+        <label data-key="reg_confirm">Confirmer le mot de passe</label>
+        <input class="auth-input" type="password" name="confirm"
+               placeholder="Répétez votre mot de passe" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block" data-key="reg_btn">
+        Créer mon compte →
+      </button>
+    </form>
+
+    <p class="auth-switch">
+      <span data-key="reg_have_account">Déjà un compte ?</span>
+      <a href="/login" data-key="reg_login_link">Se connecter</a>
+    </p>
+  </div>
+
+</div>
+{% endblock %}

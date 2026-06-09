@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}TrueShot — Vérification #{{ cert_id if not found else cert.id }}{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  {% if not found %}
+  <!-- ── ID introuvable ─────────────────────────────────────────── -->
+  <div class="verify-status not-found">
+    <div class="verify-icon">❓</div>
+    <h1 data-key="vfy_not_found_title">Certification introuvable</h1>
+    <p data-key="vfy_not_found_sub">L'ID <strong>#{{ cert_id }}</strong> ne correspond à aucune certification dans notre base.</p>
+    <div class="verify-actions">
+      <button class="btn btn-primary" onclick="document.getElementById('verifyModal').classList.add('active')"
+              data-key="vfy_try_again">Essayer un autre ID</button>
+      <a href="/" class="btn btn-ghost" data-key="vfy_home">Retour à l'accueil</a>
+    </div>
+  </div>
+
+  {% elif cert.certified %}
+  <!-- ── Certifié ───────────────────────────────────────────────── -->
+  <div class="verify-status certified">
+    <div class="verify-icon certified">✓</div>
+    <h1 data-key="vfy_ok_title">Contenu authentique vérifié</h1>
+    <p data-key="vfy_ok_sub">Ce contenu a été certifié comme étant d'origine humaine par TrueShot.</p>
+    {% if cert.creator_name %}
+    <div class="creator-banner">
+      <span class="creator-banner-label" data-key="vfy_owner">Appartient à</span>
+      <span class="creator-banner-name">@{{ cert.creator_name }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="cert-id-card certified">
+    <span class="cert-id-label" data-key="cert_id_label">ID DE CERTIFICATION</span>
+    <span class="cert-id-value">#{{ cert.id }}</span>
+  </div>
+
+  <div class="details-card">
+    <h3 data-key="details_title">Détails de la certification</h3>
+    {% if cert.creator_name %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_creator">Créateur</span>
+      <span class="detail-value creator-tag">@{{ cert.creator_name }}</span>
+    </div>
+    {% endif %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_file">Fichier original</span>
+      <span class="detail-value">{{ cert.original_filename }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_type">Type</span>
+      <span class="detail-value">{{ 'Vidéo' if cert.file_type == 'video' else 'Image' }}</span>
+    </div>
+    {% if cert.ai_score is not none %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_ai">Score IA détecté</span>
+      <div class="detail-value score-bar-wrap">
+        <div class="score-bar">
+          <div class="score-fill safe" style="width: {{ (cert.ai_score * 100)|int }}%"></div>
+        </div>
+        <span class="score-num safe">{{ (cert.ai_score * 100)|int }}%</span>
+      </div>
+    </div>
+    {% endif %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_date">Date de certification</span>
+      <span class="detail-value">{{ cert.created_at }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_status">Statut</span>
+      <span class="badge badge-success">✓ <span data-key="status_ok">Certifié</span></span>
+    </div>
+  </div>
+
+  <div class="verify-footer">
+    <div class="verify-seal">
+      <span class="seal-check">✓</span>
+      <div>
+        <strong>TrueShot</strong>
+        <span data-key="seal_sub">Real. Verified. Human.</span>
+      </div>
+    </div>
+    <a href="/submit" class="btn btn-outline" data-key="cert_another">Certifier un fichier</a>
+  </div>
+
+  {% else %}
+  <!-- ── Refusé ──────────────────────────────────────────────────── -->
+  <div class="verify-status rejected">
+    <div class="verify-icon rejected">✗</div>
+    <h1 data-key="vfy_ko_title">Certification refusée</h1>
+    <p data-key="vfy_ko_sub">Ce contenu n'a pas passé l'analyse d'authenticité TrueShot.</p>
+  </div>
+
+  <div class="cert-id-card rejected">
+    <span class="cert-id-label" data-key="cert_id_label">ID DE CERTIFICATION</span>
+    <span class="cert-id-value">#{{ cert.id }}</span>
+  </div>
+
+  <div class="details-card">
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_file">Fichier</span>
+      <span class="detail-value">{{ cert.original_filename }}</span>
+    </div>
+    {% if cert.ai_score is not none %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_ai">Score IA</span>
+      <div class="detail-value score-bar-wrap">
+        <div class="score-bar">
+          <div class="score-fill danger" style="width: {{ (cert.ai_score * 100)|int }}%"></div>
+        </div>
+        <span class="score-num danger">{{ (cert.ai_score * 100)|int }}%</span>
+      </div>
+    </div>
+    {% endif %}
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_date">Date d'analyse</span>
+      <span class="detail-value">{{ cert.created_at }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label" data-key="det_status">Statut</span>
+      <span class="badge badge-danger">✗ <span data-key="status_ko">Refusé</span></span>
+    </div>
+  </div>
+
+  <div class="verify-actions">
+    <a href="/" class="btn btn-ghost" data-key="vfy_home">← Accueil</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

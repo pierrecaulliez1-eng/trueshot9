@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}TrueShot — Mon compte{% endblock %}
+{% block content %}
+<div class="page-container">
+
+  <div class="account-header">
+    <div class="account-avatar">{{ current_user.username[0].upper() }}</div>
+    <div>
+      <h1>@{{ current_user.username }}</h1>
+      <p class="account-email">{{ current_user.email }}</p>
+      <p class="account-since">
+        <span data-key="acc_since">Membre depuis</span> {{ current_user.created_at }}
+      </p>
+    </div>
+  </div>
+
+  <div class="account-stats">
+    <div class="stat-card">
+      <div class="stat-num">{{ certs|length }}</div>
+      <div class="stat-label" data-key="acc_total">Certifications</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ certs|selectattr('certified', 'equalto', 1)|list|length }}</div>
+      <div class="stat-label" data-key="acc_certified">Certifiées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ certs|selectattr('certified', 'equalto', 0)|list|length }}</div>
+      <div class="stat-label" data-key="acc_rejected">Refusées</div>
+    </div>
+  </div>
+
+  <div class="account-section">
+    <div class="account-section-header">
+      <h2 data-key="acc_history">Mes certifications</h2>
+      <a href="/submit" class="btn btn-primary" data-key="acc_new">+ Nouvelle certification</a>
+    </div>
+
+    {% if certs %}
+    <div class="cert-list">
+      {% for c in certs %}
+      <div class="cert-list-item {% if c.certified %}certified{% else %}rejected{% endif %}">
+        <div class="cli-icon">{% if c.certified %}✓{% else %}✗{% endif %}</div>
+        <div class="cli-info">
+          <div class="cli-filename">{{ c.original_filename }}</div>
+          <div class="cli-meta">
+            <span class="cli-id">#{{ c.id }}</span>
+            <span>·</span>
+            <span>{{ c.created_at }}</span>
+            <span>·</span>
+            <span>{{ 'Vidéo' if c.file_type == 'video' else 'Image' }}</span>
+          </div>
+        </div>
+        <div class="cli-actions">
+          {% if c.certified %}
+          <a href="/download/{{ c.id }}" class="btn btn-outline btn-sm" data-key="acc_dl">↓ Fichier</a>
+          <a href="/verify/{{ c.id }}" class="btn btn-ghost btn-sm" target="_blank">🔗</a>
+          {% else %}
+          <span class="badge badge-danger" data-key="acc_refused">Refusé</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p data-key="acc_empty">Vous n'avez pas encore de certification.</p>
+      <a href="/submit" class="btn btn-primary" data-key="acc_start">Certifier mon premier fichier →</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="account-footer">
+    <a href="/logout" class="btn btn-ghost" data-key="acc_logout">Se déconnecter</a>
+  </div>
+
+</div>
+{% endblock %}
