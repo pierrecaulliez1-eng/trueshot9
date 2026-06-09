@@ -183,8 +183,9 @@ def send_email(to_email, subject, body):
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         context = ssl.create_default_context()
-        print(f'[Email] Connecting to smtp.gmail.com:465 to send "{subject}" to {to_email}')
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
+        print(f'[Email] Connecting to smtp.gmail.com:587 to send "{subject}" to {to_email}')
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls(context=context)
             server.login(mail_user, mail_password)
             server.sendmail(mail_user, to_email, msg.as_string())
         print(f'[Email] Successfully sent "{subject}" to {to_email} at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
