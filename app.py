@@ -72,6 +72,8 @@ def load_user(user_id):
 # ─── Base de données ──────────────────────────────────────────────────────────
 def get_db():
     database_url = os.environ.get('DATABASE_URL', '')
+    if not database_url:
+        raise RuntimeError('DATABASE_URL is not set. Please configure the environment variable before connecting to the database.')
     conn = psycopg2.connect(database_url)
     return conn
 
@@ -594,7 +596,10 @@ def _save_cert(cert_id, filename, file_type, ai_score, certified,
 
 # ─── Lancement ────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        print(f'[DB] Warning: init_db() failed at startup: {e}')
     # Génère le badge d'aperçu pour la page d'accueil
     preview_path = os.path.join('static', 'badge_preview.png')
     if not os.path.exists(preview_path):
