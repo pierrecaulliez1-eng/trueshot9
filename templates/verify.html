@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}TrueShot — Vérification #{{ cert_id if not found else cert.id }}{% endblock %}
+{% block title %}RealShot — Vérification #{{ cert_id if not found else cert.id }}{% endblock %}
 
 {% block content %}
 <div class="page-container">
@@ -22,7 +22,7 @@
   <div class="verify-status certified">
     <div class="verify-icon certified">✓</div>
     <h1 data-key="vfy_ok_title">Contenu authentique vérifié</h1>
-    <p data-key="vfy_ok_sub">Ce contenu a été certifié comme étant d'origine humaine par TrueShot.</p>
+    <p data-key="vfy_ok_sub">Ce contenu a été certifié comme étant d'origine humaine par RealShot.</p>
     {% if cert.creator_name %}
     <div class="creator-banner">
       <span class="creator-banner-label" data-key="vfy_owner">Appartient à</span>
@@ -77,7 +77,7 @@
     <div class="verify-seal">
       <span class="seal-check">✓</span>
       <div>
-        <strong>TrueShot</strong>
+        <strong>RealShot</strong>
         <span data-key="seal_sub">Real. Verified. Human.</span>
       </div>
     </div>
@@ -89,7 +89,7 @@
   <div class="verify-status rejected">
     <div class="verify-icon rejected">✗</div>
     <h1 data-key="vfy_ko_title">Certification refusée</h1>
-    <p data-key="vfy_ko_sub">Ce contenu n'a pas passé l'analyse d'authenticité TrueShot.</p>
+    <p data-key="vfy_ko_sub">Ce contenu n'a pas passé l'analyse d'authenticité RealShot.</p>
   </div>
 
   <div class="cert-id-card rejected">

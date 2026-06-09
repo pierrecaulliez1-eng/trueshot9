@@ -22,7 +22,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'trueshot-dev-change-in-prod')
+app.secret_key = os.environ.get('SECRET_KEY', 'realshot-dev-change-in-prod')
 app.config['UPLOAD_FOLDER']    = os.path.join('static', 'uploads')
 app.config['CERTIFIED_FOLDER'] = os.path.join('static', 'certified')
 app.config['QR_FOLDER']        = os.path.join('static', 'qrcodes')
@@ -389,12 +389,12 @@ def register():
                     login_user(user)
                     send_email_async(
                         email,
-                        'Bienvenue sur TrueShot',
-                        f'Bonjour {username},\n\nBienvenue sur TrueShot ! Votre compte a été créé avec succès.\n\nBonne certification !\nL\'équipe TrueShot'
+                        'Bienvenue sur RealShot',
+                        f'Bonjour {username},\n\nBienvenue sur RealShot ! Votre compte a été créé avec succès.\n\nBonne certification !\nL\'équipe RealShot'
                     )
                     send_email_async(
                         'muguet.marcq@gmail.com',
-                        'Nouveau compte TrueShot',
+                        'Nouveau compte RealShot',
                         f'Un nouveau compte vient d\'être créé.\n\nNom d\'utilisateur : {username}\nAdresse email : {email}'
                     )
                     return redirect(url_for('submit'))
@@ -514,7 +514,7 @@ def analyze():
                                file_type=file_type, creator_name=creator_name)
 
     ext = filename.rsplit('.', 1)[1].lower()
-    certified_filename = f"trueshot_{cert_id}.{ext}"
+    certified_filename = f"realshot_{cert_id}.{ext}"
     certified_path = os.path.join(app.config['CERTIFIED_FOLDER'], certified_filename)
 
     if file_type == 'image':
@@ -599,7 +599,7 @@ def download(cert_id):
     if not os.path.exists(path):
         abort(404)
     return send_file(path, as_attachment=True,
-                     download_name=f"TrueShot_{cert_id}_{row['original_filename']}")
+                     download_name=f"RealShot_{cert_id}_{row['original_filename']}")
 
 
 @app.route('/download-qr/<cert_id>')
@@ -616,7 +616,7 @@ def download_qr(cert_id):
     if not os.path.exists(path):
         abort(404)
     return send_file(path, as_attachment=True,
-                     download_name=f"TrueShot_QR_{cert_id}.png")
+                     download_name=f"RealShot_QR_{cert_id}.png")
 
 
 # ─── Helper interne ───────────────────────────────────────────────────────────
