@@ -195,7 +195,7 @@ def overlay_badge_on_image(src, cert_id, dst):
     img = Image.open(src).convert('RGBA')
     badge = create_badge(cert_id)
     # Badge = 12% du petit côté de la photo (net à toute taille)
-    target = max(80, min(img.width, img.height) // 8)
+    target = max(60, min(img.width, img.height) // 12)
     badge = badge.resize((target, target), Image.LANCZOS)
     x = 20
     y = img.height - badge.height - 20
@@ -211,7 +211,7 @@ def overlay_badge_on_video(src, cert_id, dst):
         from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
         video = VideoFileClip(src)
         badge = create_badge(cert_id)
-        target = max(80, min(video.w, video.h) // 8)
+        target = max(60, min(video.w, video.h) // 12)
         badge = badge.resize((target, target), Image.LANCZOS)
         badge_tmp = f'/tmp/badge_{cert_id}.png'
         badge.save(badge_tmp)
