@@ -127,12 +127,13 @@ def init_db():
             user_id           INTEGER
         )
     ''')
+    conn.commit()
     for col_def in ['creator_name TEXT', 'user_id INTEGER']:
         try:
             cur.execute(f'ALTER TABLE certifications ADD COLUMN {col_def}')
+            conn.commit()
         except Exception:
             conn.rollback()
-    conn.commit()
     cur.close()
     conn.close()
 
