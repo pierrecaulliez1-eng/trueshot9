@@ -170,12 +170,10 @@ def create_badge(cert_id):
     draw = ImageDraw.Draw(img)
     cx, cy = S // 2, S // 2
     R = 285
-    # Ombre douce
     shadow = Image.new('RGBA', (S, S), (0,0,0,0))
     ImageDraw.Draw(shadow).ellipse([cx-R+4, cy-R+4, cx+R+4, cy+R+4], fill=(0,0,0,60))
     shadow = shadow.filter(ImageFilter.GaussianBlur(8))
     img.paste(shadow, (0,0), shadow)
-    # Fond blanc + bordures
     draw.ellipse([cx-R, cy-R, cx+R, cy+R], fill=(255,255,255,255))
     draw.ellipse([cx-R, cy-R, cx+R, cy+R], outline=(15,15,15,255), width=5)
     draw.ellipse([cx-R+10, cy-R+10, cx+R-10, cy+R-10], outline=(15,15,15,80), width=1)
@@ -204,27 +202,20 @@ def create_badge(cert_id):
             angle += math.degrees(cw / radius)
     arc_text("TRUESHOT", font_title, 218, 0, (12,12,12,255))
     arc_text("HUMAN CAPTURED", font_sub, 220, 180, (12,12,12,255))
-    # Arcs décoratifs
     ar = 158
     draw.arc([cx-ar, cy-ar, cx+ar, cy+ar], start=145, end=215, fill=(12,12,12,255), width=3)
     draw.arc([cx-ar, cy-ar, cx+ar, cy+ar], start=325, end=35, fill=(12,12,12,255), width=3)
-    # Corps caméra
     cam_w, cam_h = 170, 132
     cam_x = cx - cam_w//2
     cam_y = cy - cam_h//2 + 14
-    draw.rounded_rectangle([cam_x, cam_y, cam_x+cam_w, cam_y+cam_h],
-        radius=22, outline=(12,12,12,255), width=4)
-    # Bosse haut caméra
+    draw.rounded_rectangle([cam_x, cam_y, cam_x+cam_w, cam_y+cam_h], radius=22, outline=(12,12,12,255), width=4)
     bw = 44
-    draw.rounded_rectangle([cx-bw//2, cam_y-18, cx+bw//2, cam_y+6],
-        radius=8, fill=(255,255,255,255), outline=(12,12,12,255), width=4)
-    # Objectif
+    draw.rounded_rectangle([cx-bw//2, cam_y-18, cx+bw//2, cam_y+6], radius=8, fill=(255,255,255,255), outline=(12,12,12,255), width=4)
     draw.ellipse([cx-46, cy-46+14, cx+46, cy+46+14], outline=(12,12,12,255), width=4)
     draw.ellipse([cx-36, cy-36+14, cx+36, cy+36+14], outline=(12,12,12,40), width=2)
     draw.ellipse([cx-18, cy-18+14, cx+18, cy+18+14], outline=(12,12,12,255), width=3)
-    # Point highlight
     draw.ellipse([cam_x+cam_w-30, cam_y+12, cam_x+cam_w-18, cam_y+24], fill=(12,12,12,255))
-    return img  # badge natif 600×600, sans resize
+    return img
 
 def overlay_badge_on_image(src, cert_id, dst):
     img = Image.open(src).convert('RGBA')
