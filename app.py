@@ -1,7 +1,13 @@
 import os
+import re
 import uuid
-import sqlite3
+import smtplib
+import ssl
+import psycopg2
+import psycopg2.extras
 import requests
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import qrcode
 import numpy as np
 import shutil
@@ -52,7 +58,10 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    row = dict_fetchone(cur)
+    cur.close()
     conn.close()
     if row:
         return User(row['id'], row['username'], row['email'],
@@ -62,16 +71,30 @@ def load_user(user_id):
 
 # ─── Base de données ──────────────────────────────────────────────────────────
 def get_db():
-    conn = sqlite3.connect('trueshot.db')
-    conn.row_factory = sqlite3.Row
+    database_url = os.environ.get('DATABASE_URL', '')
+    conn = psycopg2.connect(database_url)
     return conn
+
+def dict_fetchone(cursor):
+    """Return a single row as a dict, or None."""
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    cols = [desc[0] for desc in cursor.description]
+    return dict(zip(cols, row))
+
+def dict_fetchall(cursor):
+    """Return all rows as a list of dicts."""
+    cols = [desc[0] for desc in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
 def init_db():
     conn = get_db()
+    cur = conn.cursor()
     # Table utilisateurs
-    conn.execute('''
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            id            SERIAL PRIMARY KEY,
             username      TEXT NOT NULL UNIQUE,
             email         TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
@@ -79,28 +102,51 @@ def init_db():
         )
     ''')
     # Table certifications
-    conn.execute('''
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS certifications (
-            id               TEXT PRIMARY KEY,
+            id                TEXT PRIMARY KEY,
             original_filename TEXT NOT NULL,
-            file_type        TEXT NOT NULL,
-            ai_score         REAL,
-            certified        INTEGER NOT NULL DEFAULT 0,
-            rejection_reason TEXT,
-            certified_file   TEXT,
-            qr_code_file     TEXT,
-            created_at       TEXT NOT NULL,
-            creator_name     TEXT,
-            user_id          INTEGER
+            file_type         TEXT NOT NULL,
+            ai_score          REAL,
+            certified         INTEGER NOT NULL DEFAULT 0,
+            rejection_reason  TEXT,
+            certified_file    TEXT,
+            qr_code_file      TEXT,
+            created_at        TEXT NOT NULL,
+            creator_name      TEXT,
+            user_id           INTEGER
         )
     ''')
-    for col in ['creator_name TEXT', 'user_id INTEGER']:
+    for col_def in ['creator_name TEXT', 'user_id INTEGER']:
         try:
-            conn.execute(f'ALTER TABLE certifications ADD COLUMN {col}')
+            cur.execute(f'ALTER TABLE certifications ADD COLUMN {col_def}')
         except Exception:
-            pass
+            conn.rollback()
     conn.commit()
+    cur.close()
     conn.close()
+
+
+# ─── Email ────────────────────────────────────────────────────────────────────
+def send_email(to_email, subject, body):
+    mail_user     = os.environ.get('MAIL_USER', '')
+    mail_password = os.environ.get('MAIL_PASSWORD', '')
+    if not mail_user or not mail_password:
+        print('[Email] MAIL_USER or MAIL_PASSWORD not set — skipping.')
+        return
+    try:
+        msg = MIMEMultipart()
+        msg['From']    = mail_user
+        msg['To']      = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
+            server.login(mail_user, mail_password)
+            server.sendmail(mail_user, to_email, msg.as_string())
+        print(f'[Email] Sent "{subject}" to {to_email}')
+    except Exception as e:
+        print(f'[Email] Failed to send to {to_email}: {e}')
 
 
 # ─── Utilitaires ──────────────────────────────────────────────────────────────
@@ -112,11 +158,15 @@ def is_video(filename):
 
 def generate_unique_id():
     conn = get_db()
+    cur = conn.cursor()
     for _ in range(100):
         cert_id = str(uuid.uuid4().int)[:6]
-        if not conn.execute('SELECT 1 FROM certifications WHERE id = ?', (cert_id,)).fetchone():
+        cur.execute('SELECT 1 FROM certifications WHERE id = %s', (cert_id,))
+        if not cur.fetchone():
+            cur.close()
             conn.close()
             return cert_id
+    cur.close()
     conn.close()
     return str(uuid.uuid4().int)[:8]
 
@@ -261,25 +311,47 @@ def register():
             error = 'password_mismatch'
         elif len(password) < 6:
             error = 'password_short'
+        elif not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+            error = 'invalid_email'
         else:
             conn = get_db()
-            if conn.execute('SELECT 1 FROM users WHERE username = ?', (username,)).fetchone():
+            cur = conn.cursor()
+            cur.execute('SELECT 1 FROM users WHERE username = %s', (username,))
+            if cur.fetchone():
                 error = 'username_taken'
-            elif conn.execute('SELECT 1 FROM users WHERE email = ?', (email,)).fetchone():
-                error = 'email_taken'
             else:
-                conn.execute('''
-                    INSERT INTO users (username, email, password_hash, created_at)
-                    VALUES (?, ?, ?, ?)
-                ''', (username, email, generate_password_hash(password),
-                      datetime.now().strftime('%d/%m/%Y à %H:%M')))
-                conn.commit()
-                row = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-                conn.close()
-                user = User(row['id'], row['username'], row['email'],
-                            row['password_hash'], row['created_at'])
-                login_user(user)
-                return redirect(url_for('submit'))
+                cur.execute('SELECT 1 FROM users WHERE email = %s', (email,))
+                if cur.fetchone():
+                    error = 'email_taken'
+                else:
+                    cur.execute('''
+                        INSERT INTO users (username, email, password_hash, created_at)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (username, email, generate_password_hash(password),
+                          datetime.now().strftime('%d/%m/%Y à %H:%M')))
+                    conn.commit()
+                    cur.execute('SELECT * FROM users WHERE username = %s', (username,))
+                    row = dict_fetchone(cur)
+                    cur.close()
+                    conn.close()
+                    user = User(row['id'], row['username'], row['email'],
+                                row['password_hash'], row['created_at'])
+                    login_user(user)
+                    try:
+                        send_email(
+                            email,
+                            'Bienvenue sur TrueShot',
+                            f'Bonjour {username},\n\nBienvenue sur TrueShot ! Votre compte a été créé avec succès.\n\nBonne certification !\nL\'équipe TrueShot'
+                        )
+                        send_email(
+                            'muguet.marcq@gmail.com',
+                            'Nouveau compte TrueShot',
+                            f'Un nouveau compte vient d\'être créé.\n\nNom d\'utilisateur : {username}\nAdresse email : {email}'
+                        )
+                    except Exception as e:
+                        print(f'[Email] Unexpected error during registration emails: {e}')
+                    return redirect(url_for('submit'))
+            cur.close()
             conn.close()
     return render_template('register.html', error=error)
 
@@ -293,10 +365,13 @@ def login():
         login_id = request.form.get('login_id', '').strip()
         password = request.form.get('password', '')
         conn = get_db()
-        row = conn.execute(
-            'SELECT * FROM users WHERE username = ? OR email = ?',
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT * FROM users WHERE username = %s OR email = %s',
             (login_id, login_id.lower())
-        ).fetchone()
+        )
+        row = dict_fetchone(cur)
+        cur.close()
         conn.close()
         if row and check_password_hash(row['password_hash'], password):
             user = User(row['id'], row['username'], row['email'],
@@ -319,13 +394,15 @@ def logout():
 @login_required
 def account():
     conn = get_db()
-    certs = conn.execute('''
-        SELECT * FROM certifications WHERE user_id = ?
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT * FROM certifications WHERE user_id = %s
         ORDER BY created_at DESC
-    ''', (current_user.id,)).fetchall()
+    ''', (current_user.id,))
+    certs = dict_fetchall(cur)
+    cur.close()
     conn.close()
-    return render_template('account.html',
-                           certs=[dict(c) for c in certs])
+    return render_template('account.html', certs=certs)
 
 
 # ─── Routes : site ────────────────────────────────────────────────────────────
@@ -427,39 +504,46 @@ def analyze():
 @app.route('/result/<cert_id>')
 def result(cert_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM certifications WHERE id = ?', (cert_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM certifications WHERE id = %s', (cert_id,))
+    row = dict_fetchone(cur)
+    cur.close()
     conn.close()
     if not row:
         return redirect(url_for('index'))
-    c = dict(row)
     return render_template('result.html',
-                           certified=bool(c['certified']),
+                           certified=bool(row['certified']),
                            cert_id=cert_id,
-                           ai_score=c['ai_score'],
-                           filename=c['original_filename'],
-                           file_type=c['file_type'],
-                           certified_file=c.get('certified_file'),
-                           qr_file=c.get('qr_code_file'),
-                           creator_name=c.get('creator_name', ''))
+                           ai_score=row['ai_score'],
+                           filename=row['original_filename'],
+                           file_type=row['file_type'],
+                           certified_file=row.get('certified_file'),
+                           qr_file=row.get('qr_code_file'),
+                           creator_name=row.get('creator_name', ''))
 
 
 @app.route('/verify/<cert_id>')
 def verify(cert_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM certifications WHERE id = ?', (cert_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM certifications WHERE id = %s', (cert_id,))
+    row = dict_fetchone(cur)
+    cur.close()
     conn.close()
     if not row:
         return render_template('verify.html', found=False, cert_id=cert_id)
-    cert = dict(row)
-    if not cert.get('creator_name'):
-        cert['creator_name'] = ''
-    return render_template('verify.html', found=True, cert=cert)
+    if not row.get('creator_name'):
+        row['creator_name'] = ''
+    return render_template('verify.html', found=True, cert=row)
 
 
 @app.route('/download/<cert_id>')
 def download(cert_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM certifications WHERE id = ?', (cert_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM certifications WHERE id = %s', (cert_id,))
+    row = dict_fetchone(cur)
+    cur.close()
     conn.close()
     if not row or not row['certified_file']:
         abort(404)
@@ -473,7 +557,10 @@ def download(cert_id):
 @app.route('/download-qr/<cert_id>')
 def download_qr(cert_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM certifications WHERE id = ?', (cert_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM certifications WHERE id = %s', (cert_id,))
+    row = dict_fetchone(cur)
+    cur.close()
     conn.close()
     if not row or not row['qr_code_file']:
         abort(404)
@@ -489,17 +576,19 @@ def _save_cert(cert_id, filename, file_type, ai_score, certified,
                rejection_reason=None, certified_file=None, qr_file=None,
                creator_name=None, user_id=None):
     conn = get_db()
-    conn.execute('''
+    cur = conn.cursor()
+    cur.execute('''
         INSERT INTO certifications
             (id, original_filename, file_type, ai_score, certified,
              rejection_reason, certified_file, qr_code_file, created_at,
              creator_name, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (cert_id, filename, file_type, ai_score, int(certified),
           rejection_reason, certified_file, qr_file,
           datetime.now().strftime('%d/%m/%Y à %H:%M'),
           creator_name, user_id))
     conn.commit()
+    cur.close()
     conn.close()
 
 
