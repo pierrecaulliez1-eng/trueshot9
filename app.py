@@ -13,9 +13,6 @@ from flask_login import (LoginManager, UserMixin, login_user,
                          logout_user, login_required, current_user)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'trueshot-dev-change-in-prod')
