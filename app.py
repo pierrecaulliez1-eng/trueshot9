@@ -57,16 +57,24 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
-    row = dict_fetchone(cur)
-    cur.close()
-    conn.close()
-    if row:
-        return User(row['id'], row['username'], row['email'],
-                    row['password_hash'], row['created_at'])
-    return None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        row = dict_fetchone(cur)
+        cur.close()
+        conn.close()
+        if row:
+            return User(row['id'], row['username'], row['email'],
+                        row['password_hash'], row['created_at'])
+        return None
+    except psycopg2.errors.UndefinedTable:
+        print('[DB] load_user: users table missing — running ensure_tables_exist()')
+        ensure_tables_exist()
+        return None
+    except Exception as e:
+        print(f'[DB] load_user: unexpected error: {e}')
+        return None
 
 
 # ─── Base de données ──────────────────────────────────────────────────────────
