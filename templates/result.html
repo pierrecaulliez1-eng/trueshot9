@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}TrueShot — {% if certified %}Certifié ✓{% else %}Non certifié{% endif %}{% endblock %}
+{% block title %}RealShot — {% if certified %}Certifié ✓{% else %}Non certifié{% endif %}{% endblock %}
 
 {% block content %}
 <div class="page-container">
@@ -100,8 +100,8 @@
     </div>
     <ul class="usage-tip-list">
       <li data-key="tip1">Téléchargez le <strong>fichier certifié</strong> (avec le badge intégré) et publiez-le tel quel.</li>
-      <li data-key="tip2">Dans la description de votre publication, ajoutez : <span class="tip-code">Certifié TrueShot #{{ cert_id }} — trueshot.com/verify/{{ cert_id }}</span></li>
-      <li data-key="tip3">Votre audience peut scanner le <strong>QR code</strong> ou saisir l'ID sur TrueShot pour vérifier l'authenticité en un clic.</li>
+      <li data-key="tip2">Dans la description de votre publication, ajoutez : <span class="tip-code">Certifié RealShot #{{ cert_id }} — realshot.com/verify/{{ cert_id }}</span></li>
+      <li data-key="tip3">Votre audience peut scanner le <strong>QR code</strong> ou saisir l'ID sur RealShot pour vérifier l'authenticité en un clic.</li>
     </ul>
   </div>
 
@@ -109,7 +109,7 @@
   {% if qr_file %}
   <div class="qr-preview-wrap">
     <div class="qr-preview">
-      <img src="{{ url_for('static', filename='qrcodes/' + qr_file) }}" alt="QR Code TrueShot #{{ cert_id }}">
+      <img src="{{ url_for('static', filename='qrcodes/' + qr_file) }}" alt="QR Code RealShot #{{ cert_id }}">
     </div>
     <p class="qr-caption" data-key="qr_caption">Scannez pour vérifier l'authenticité</p>
   </div>
