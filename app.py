@@ -27,6 +27,7 @@ VIDEO_EXTENSIONS   = {'mp4', 'mov', 'avi', 'mkv'}
 # ─── API Sightengine (NE PAS MODIFIER) ───────────────────────────────────────
 SE_USER   = os.environ.get('SIGHTENGINE_USER', '')
 SE_SECRET = os.environ.get('SIGHTENGINE_SECRET', '')
+print(f"[DEBUG] SE_USER loaded: {bool(SE_USER)}, SE_SECRET loaded: {bool(SE_SECRET)}")
 AI_THRESHOLD = 0.60
 
 # ─── Dossiers ─────────────────────────────────────────────────────────────────
