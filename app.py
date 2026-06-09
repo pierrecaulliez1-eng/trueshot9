@@ -46,8 +46,6 @@ for folder in [app.config['UPLOAD_FOLDER'],
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-with app.app_context():
-    init_db()
 
 class User(UserMixin):
     def __init__(self, id, username, email, password_hash, created_at):
@@ -597,6 +595,12 @@ def _save_cert(cert_id, filename, file_type, ai_score, certified,
 
 
 # ─── Lancement ────────────────────────────────────────────────────────────────
+# Init DB au démarrage (pour Railway/gunicorn)
+try:
+    with app.app_context():
+        init_db()
+except Exception as e:
+    print(f'[DB] init_db failed: {e}')
 if __name__ == '__main__':
     try:
         init_db()
