@@ -129,6 +129,36 @@ def init_db():
     conn.close()
 
 
+def ensure_tables_exist():
+    """Create tables if they don't exist yet.
+
+    Runs a lightweight probe query against the users table. If PostgreSQL
+    raises an UndefinedTable error (relation does not exist) we call
+    init_db() to create all tables. Any other unexpected error is logged
+    but not re-raised so that the request can still proceed.
+    """
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute('SELECT 1 FROM users LIMIT 1')
+        cur.close()
+        conn.close()
+    except psycopg2.errors.UndefinedTable:
+        print('[DB] Tables not found — running init_db()')
+        try:
+            init_db()
+        except Exception as e:
+            print(f'[DB] init_db() failed inside ensure_tables_exist: {e}')
+    except Exception as e:
+        print(f'[DB] ensure_tables_exist probe failed: {e}')
+
+
+@app.before_request
+def before_request_ensure_tables():
+    """Guarantee tables exist before every request is handled."""
+    ensure_tables_exist()
+
+
 # ─── Email ────────────────────────────────────────────────────────────────────
 def send_email(to_email, subject, body):
     mail_user     = os.environ.get('MAIL_USER', '')
