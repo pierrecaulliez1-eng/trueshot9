@@ -185,7 +185,7 @@ def create_badge(cert_id):
     try:
         font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 260)
     except:
-        font = ImageFont.load_default()
+        font = ImageFont.load_default(size=260)
     bb = font.getbbox("TS")
     tw, th = bb[2]-bb[0], bb[3]-bb[1]
     draw.text((cx - tw//2 - bb[0], cy - th//2 - bb[1]), "TS", font=font, fill=(255,255,255,255))
