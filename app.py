@@ -165,30 +165,31 @@ def extract_video_frame(video_path):
 # ─── Badge ───────────────────────────────────────────────────────────────────
 def create_badge(cert_id):
     from PIL import ImageFilter
+    import math
     S = 600
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
     cx, cy = S // 2, S // 2
     R = 285
-    # Ombre
     shadow = Image.new('RGBA', (S, S), (0,0,0,0))
-    ImageDraw.Draw(shadow).ellipse([cx-R+6, cy-R+6, cx+R+6, cy+R+6], fill=(0,0,0,80))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(12))
+    ImageDraw.Draw(shadow).ellipse([cx-R+8, cy-R+8, cx+R+8, cy+R+8], fill=(0,0,0,100))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(16))
     img.paste(shadow, (0,0), shadow)
-    # Fond vert
-    draw.ellipse([cx-R, cy-R, cx+R, cy+R], fill=(20, 180, 90, 255))
-    # Cercle intérieur
-    draw.ellipse([cx-R+8, cy-R+8, cx+R-8, cy+R-8], outline=(255,255,255,60), width=3)
-    # Bordure blanche
-    draw.ellipse([cx-R, cy-R, cx+R, cy+R], outline=(255,255,255,200), width=6)
-    # Lettres TS
-    try:
-        font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 260)
-    except:
-        font = ImageFont.load_default(size=260)
-    bb = font.getbbox("TS")
-    tw, th = bb[2]-bb[0], bb[3]-bb[1]
-    draw.text((cx - tw//2 - bb[0], cy - th//2 - bb[1]), "TS", font=font, fill=(255,255,255,255))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse([cx-R, cy-R, cx+R, cy+R], fill=(12, 14, 20, 255))
+    draw.ellipse([cx-R, cy-R, cx+R, cy+R], outline=(74, 222, 128, 255), width=10)
+    draw.ellipse([cx-R+18, cy-R+18, cx+R-18, cy+R-18], outline=(74, 222, 128, 50), width=2)
+    lw = 32
+    green = (74, 222, 128, 255)
+    def draw_thick_line(draw, x1, y1, x2, y2, width, color):
+        angle = math.atan2(y2 - y1, x2 - x1)
+        dx = width / 2 * math.sin(angle)
+        dy = width / 2 * math.cos(angle)
+        draw.polygon([(x1-dx, y1+dy),(x1+dx, y1-dy),(x2+dx, y2-dy),(x2-dx, y2+dy)], fill=color)
+    draw_thick_line(draw, cx-120, cy+10, cx-10, cy+120, lw, green)
+    draw_thick_line(draw, cx-10, cy+120, cx+140, cy-110, lw, green)
+    for x, y in [(cx-120, cy+10), (cx-10, cy+120), (cx+140, cy-110)]:
+        r = lw // 2
+        draw.ellipse([x-r, y-r, x+r, y+r], fill=green)
     return img
 
 def overlay_badge_on_image(src, cert_id, dst):
