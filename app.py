@@ -248,7 +248,10 @@ def analyze_with_sightengine(image_path):
 
 def extract_video_frame(video_path):
     try:
-        from moviepy.editor import VideoFileClip
+        try:
+            from moviepy.editor import VideoFileClip
+        except ImportError:
+            from moviepy import VideoFileClip
         clip = VideoFileClip(video_path)
         t = min(clip.duration * 0.15, 5.0)
         frame = clip.get_frame(t)
@@ -309,7 +312,10 @@ def overlay_badge_on_image(src, cert_id, dst):
 
 def overlay_badge_on_video(src, cert_id, dst):
     try:
-        from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
+        try:
+            from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
+        except ImportError:
+            from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
         video = VideoFileClip(src)
         badge = create_badge(cert_id)
         target = max(60, min(video.w, video.h) // 12)
