@@ -164,57 +164,31 @@ def extract_video_frame(video_path):
 
 # ─── Badge ───────────────────────────────────────────────────────────────────
 def create_badge(cert_id):
-    import math
+    from PIL import ImageFilter
     S = 600
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     cx, cy = S // 2, S // 2
     R = 285
+    # Ombre
     shadow = Image.new('RGBA', (S, S), (0,0,0,0))
-    ImageDraw.Draw(shadow).ellipse([cx-R+4, cy-R+4, cx+R+4, cy+R+4], fill=(0,0,0,60))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
+    ImageDraw.Draw(shadow).ellipse([cx-R+6, cy-R+6, cx+R+6, cy+R+6], fill=(0,0,0,80))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(12))
     img.paste(shadow, (0,0), shadow)
-    draw.ellipse([cx-R, cy-R, cx+R, cy+R], fill=(255,255,255,255))
-    draw.ellipse([cx-R, cy-R, cx+R, cy+R], outline=(15,15,15,255), width=5)
-    draw.ellipse([cx-R+10, cy-R+10, cx+R-10, cy+R-10], outline=(15,15,15,80), width=1)
+    # Fond vert
+    draw.ellipse([cx-R, cy-R, cx+R, cy+R], fill=(20, 180, 90, 255))
+    # Cercle intérieur
+    draw.ellipse([cx-R+8, cy-R+8, cx+R-8, cy+R-8], outline=(255,255,255,60), width=3)
+    # Bordure blanche
+    draw.ellipse([cx-R, cy-R, cx+R, cy+R], outline=(255,255,255,200), width=6)
+    # Lettres TS
     try:
-        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 42)
-        font_sub = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 34)
+        font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 260)
     except:
-        font_title = ImageFont.load_default()
-        font_sub = font_title
-    def arc_text(text, font, radius, start_deg, color, spacing=1.18):
-        char_widths = [(font.getbbox(c)[2] - font.getbbox(c)[0]) * spacing for c in text]
-        total_angle = sum(math.degrees(w / radius) for w in char_widths)
-        angle = start_deg - total_angle / 2
-        for ch in text:
-            cw = (font.getbbox(ch)[2] - font.getbbox(ch)[0]) * spacing
-            mid_angle = angle + math.degrees(cw / radius) / 2
-            a = math.radians(mid_angle)
-            x = cx + radius * math.cos(a - math.pi/2)
-            y = cy + radius * math.sin(a - math.pi/2)
-            bb = font.getbbox(ch)
-            pad = 6
-            tmp = Image.new('RGBA', (bb[2]-bb[0]+pad*2, bb[3]-bb[1]+pad*2), (0,0,0,0))
-            ImageDraw.Draw(tmp).text((-bb[0]+pad, -bb[1]+pad), ch, font=font, fill=color)
-            tmp = tmp.rotate(-mid_angle, expand=True, resample=Image.BICUBIC)
-            img.paste(tmp, (int(x - tmp.width/2), int(y - tmp.height/2)), tmp)
-            angle += math.degrees(cw / radius)
-    arc_text("TRUESHOT", font_title, 218, 0, (12,12,12,255))
-    arc_text("HUMAN CAPTURED", font_sub, 220, 180, (12,12,12,255))
-    ar = 158
-    draw.arc([cx-ar, cy-ar, cx+ar, cy+ar], start=145, end=215, fill=(12,12,12,255), width=3)
-    draw.arc([cx-ar, cy-ar, cx+ar, cy+ar], start=325, end=35, fill=(12,12,12,255), width=3)
-    cam_w, cam_h = 170, 132
-    cam_x = cx - cam_w//2
-    cam_y = cy - cam_h//2 + 14
-    draw.rounded_rectangle([cam_x, cam_y, cam_x+cam_w, cam_y+cam_h], radius=22, outline=(12,12,12,255), width=4)
-    bw = 44
-    draw.rounded_rectangle([cx-bw//2, cam_y-18, cx+bw//2, cam_y+6], radius=8, fill=(255,255,255,255), outline=(12,12,12,255), width=4)
-    draw.ellipse([cx-46, cy-46+14, cx+46, cy+46+14], outline=(12,12,12,255), width=4)
-    draw.ellipse([cx-36, cy-36+14, cx+36, cy+36+14], outline=(12,12,12,40), width=2)
-    draw.ellipse([cx-18, cy-18+14, cx+18, cy+18+14], outline=(12,12,12,255), width=3)
-    draw.ellipse([cam_x+cam_w-30, cam_y+12, cam_x+cam_w-18, cam_y+24], fill=(12,12,12,255))
+        font = ImageFont.load_default()
+    bb = font.getbbox("TS")
+    tw, th = bb[2]-bb[0], bb[3]-bb[1]
+    draw.text((cx - tw//2 - bb[0], cy - th//2 - bb[1]), "TS", font=font, fill=(255,255,255,255))
     return img
 
 def overlay_badge_on_image(src, cert_id, dst):
