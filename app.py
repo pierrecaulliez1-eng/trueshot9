@@ -3,6 +3,7 @@ import re
 import uuid
 import smtplib
 import ssl
+import threading
 import psycopg2
 import psycopg2.extras
 import requests
@@ -182,12 +183,19 @@ def send_email(to_email, subject, body):
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         context = ssl.create_default_context()
+        print(f'[Email] Connecting to smtp.gmail.com:465 to send "{subject}" to {to_email}')
         with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as server:
             server.login(mail_user, mail_password)
             server.sendmail(mail_user, to_email, msg.as_string())
-        print(f'[Email] Sent "{subject}" to {to_email}')
+        print(f'[Email] Successfully sent "{subject}" to {to_email} at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     except Exception as e:
-        print(f'[Email] Failed to send to {to_email}: {e}')
+        print(f'[Email] Failed to send "{subject}" to {to_email}: {type(e).__name__}: {e}')
+
+
+def send_email_async(to_email, subject, body):
+    """Spawn a background thread to send an email so the caller is not blocked."""
+    t = threading.Thread(target=send_email, args=(to_email, subject, body), daemon=True)
+    t.start()
 
 
 # ─── Utilitaires ──────────────────────────────────────────────────────────────
@@ -378,20 +386,18 @@ def register():
                     user = User(row['id'], row['username'], row['email'],
                                 row['password_hash'], row['created_at'])
                     login_user(user)
-                    try:
-                        send_email(
-                            email,
-                            'Bienvenue sur TrueShot',
-                            f'Bonjour {username},\n\nBienvenue sur TrueShot ! Votre compte a été créé avec succès.\n\nBonne certification !\nL\'équipe TrueShot'
-                        )
-                        send_email(
-                            'muguet.marcq@gmail.com',
-                            'Nouveau compte TrueShot',
-                            f'Un nouveau compte vient d\'être créé.\n\nNom d\'utilisateur : {username}\nAdresse email : {email}'
-                        )
-                    except Exception as e:
-                        print(f'[Email] Unexpected error during registration emails: {e}')
+                    send_email_async(
+                        email,
+                        'Bienvenue sur TrueShot',
+                        f'Bonjour {username},\n\nBienvenue sur TrueShot ! Votre compte a été créé avec succès.\n\nBonne certification !\nL\'équipe TrueShot'
+                    )
+                    send_email_async(
+                        'muguet.marcq@gmail.com',
+                        'Nouveau compte TrueShot',
+                        f'Un nouveau compte vient d\'être créé.\n\nNom d\'utilisateur : {username}\nAdresse email : {email}'
+                    )
                     return redirect(url_for('submit'))
+
             cur.close()
             conn.close()
     return render_template('register.html', error=error)
